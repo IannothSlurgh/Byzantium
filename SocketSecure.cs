@@ -25,26 +25,25 @@ class CommunicationNode
 	}
 	class TCPState
 	{
-		IPEndPoint ep;
-		Socket client;
-        public TCPState(IPEndPoint _ep, ref Socket _client)
+        public IPEndPoint ep;
+        //For most communications with other nodes.
+        //Use of socket because it fulfills both TcpListener and TcpClient roles.
+        public Socket listening_socket;
+        //The socket returned by a successful TCP connection.
+        public Socket work_socket;
+        public TCPState(IPEndPoint _ep, ref Socket _listening_socket)
         {
-            client = _client;
+            listening_socket = _listening_socket;
             ep = _ep;
+            work_socket = null;
         }
 	}
 
-	//For most communications with other nodes.
-	//Use of socket because it fulfills both TcpListener and TcpClient roles.
+    private TCPState tcp_data;
 	private Socket listen_socket;
-	//The socket returned by a successful TCP connection.
 	private Socket remote_socket; 
 	//Primarily for broadcasts on open LAN.
 	private UdpClient broadcaster;
-	//Thread that blocks to handle synchronous listen_socket.
-	private Thread tcp_thread;
-	//Thread that blocks to handle synchronous udp.
-	private Thread broadcast_thread;
 	
 	//What port is TCP socket currently associated with?
 	private int tcp_port;
@@ -58,22 +57,12 @@ class CommunicationNode
 	private bool node_ok;
 
     private string err;
-
-	//this function is dedicated to synchronous tcp accepts.
-	private void tcp_thread_protocol()
-	{
-		remote_socket = listen_socket.Accept();
-		
-	}
-	
-	private void broadcast_thread_protocol()
-	{
-	}
 	
 	static void accept_callback(IAsyncResult result)
 	{
-        Socket listener = (Socket)result.AsyncState;
-        Socket work_socket = listener.EndAccept(result);
+        TCPState state = (TCPState)result;
+        Socket listener = state.listening_socket;
+        state.work_socket = listener.EndAccept(result);
 	}
 	
 	//Iniitialize both sockets.
@@ -87,13 +76,21 @@ class CommunicationNode
 		listen_socket = new Socket(addr_fam, sock_type, proto_type);
 		//Get local ip address of computer this code is running on.
 		IPAddress[] _my_ip = Dns.GetHostAddresses(string.Empty);
-		//Length should be either 1 or 2 depending on OS. index 0 should be IPv4
+		//Length varies. We only care about ipv4 in this program.
 		if(_my_ip.Length == 0)
 		{
             node_ok = false;
 			return;
 		}
-		my_ip = _my_ip[0];
+        //Pick the last possible IPv4 address available to this machine.
+        foreach (IPAddress possible_ip in _my_ip)
+        {
+            if (possible_ip.AddressFamily == AddressFamily.InterNetwork)
+            {
+                my_ip = possible_ip;
+            }
+        }
+		//my_ip = _my_ip[1];
 		//User must specify ports for two sockets by assign_ports.
 		tcp_port = 0;
 		broadcast_port = 0;
@@ -113,7 +110,11 @@ class CommunicationNode
 		//Broadcasts will be to all others on this subnet
 		byte [] ip_bytes = my_ip.GetAddressBytes();
         ip_bytes[HOSTNUMBERINDEX] = 255;
-		IPAddress broadcast_ip = new IPAddress(ip_bytes);
+        foreach (byte b in ip_bytes)
+        {
+            Console.Out.Write(b);
+        }
+		broadcast_ip = new IPAddress(ip_bytes);
 		node_ok = true;
 	}
 	
@@ -147,10 +148,10 @@ class CommunicationNode
 		//Two threads are sent off to block.
 		//Thread.Start(tcp_thread);
 		//Thread.Start(broadcast_thread);
-		TCPState callback_state_tcp = new TCPState(my_location, ref listen_socket);
+        tcp_data = new TCPState(my_location, ref listen_socket);
 		UDPState callback_state_udp = new UDPState(my_location, ref broadcaster);
         AsyncCallback accept = new AsyncCallback(accept_callback);
-		listen_socket.BeginAccept(accept, callback_state_tcp);
+		listen_socket.BeginAccept(accept, tcp_data);
 		//broadcaster.BeginReceive();
 		return true;
 	}
