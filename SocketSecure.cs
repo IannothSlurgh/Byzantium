@@ -2,21 +2,15 @@
 using System;
 using System.Security.Cryptography;
 using System.Net.Sockets;
-//using System.Net.IPAddress;
 using System.Net;
-//using System.Net.Sockets.UdpClient;
-using System.Net.Dns;
-//using System.Net.NetworkInformation;
-//using System.Array;
 using System.Threading;
-using System.String;
-using System.ArgumentNullException;
-using System.FormatException;
 using System.Runtime.Remoting.Messaging; //For Asynch Callbacks.
 
 
 class CommunicationNode
 {
+    //IPaddresses are byte arrays of len 4. This constant refers to
+    //the index that contains the host number on this subnet.
     const int HOSTNUMBERINDEX = 3;
 
 	class UDPState
@@ -62,7 +56,9 @@ class CommunicationNode
 	
 	//No critical errors have made this node inoperative.
 	private bool node_ok;
-	
+
+    private string err;
+
 	//this function is dedicated to synchronous tcp accepts.
 	private void tcp_thread_protocol()
 	{
@@ -76,6 +72,8 @@ class CommunicationNode
 	
 	static void accept_callback(IAsyncResult result)
 	{
+        Socket listener = (Socket)result.AsyncState;
+        Socket work_socket = listener.EndAccept(result);
 	}
 	
 	//Iniitialize both sockets.
@@ -114,7 +112,7 @@ class CommunicationNode
 		
 		//Broadcasts will be to all others on this subnet
 		byte [] ip_bytes = my_ip.GetAddressBytes();
-		byte[HOSTNUMBERINDEX] = 255;
+        ip_bytes[HOSTNUMBERINDEX] = 255;
 		IPAddress broadcast_ip = new IPAddress(ip_bytes);
 		node_ok = true;
 	}
@@ -157,10 +155,10 @@ class CommunicationNode
 		return true;
 	}
 	
-	public bool close_connection
+	/*public bool close_connection
 	{
 		
-	}
+	}*/
 	
 	public bool connect(string target_address)
 	{
@@ -171,10 +169,12 @@ class CommunicationNode
 		}
 		catch(System.FormatException e)
 		{
+            err = e.ToString();
 			return false;
 		}
 		catch(System.ArgumentNullException e)
 		{
+            err = e.ToString();
 			return false;
 		}
 		listen_socket.Connect(remote_ip, tcp_port);
