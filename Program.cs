@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
 
-namespace safenetwork
+namespace Byzantium
 {
     class car
     {
@@ -32,6 +32,8 @@ namespace safenetwork
             CommunicationNode ss = new CommunicationNode();
             ss.assign_ports(12000, 12000);
             byte[] msg = Encoding.ASCII.GetBytes("Byzantine Signature");
+            byte[] msg2 = Encoding.ASCII.GetBytes("Byzantine Signature");
+            Console.Out.WriteLine(msg==msg2);
             for (int i = 0; i < 60; ++i)
             {
                 ss.broadcast(msg);

@@ -58,7 +58,7 @@ class CommunicationNode
 
     private string err;
 	
-	static void accept_callback(IAsyncResult result)
+	static void tcp_accept_callback(IAsyncResult result)
 	{
         TCPState state = (TCPState)result;
         Socket listener = state.listening_socket;
@@ -150,7 +150,7 @@ class CommunicationNode
 		//Thread.Start(broadcast_thread);
         tcp_data = new TCPState(my_location, ref listen_socket);
 		UDPState callback_state_udp = new UDPState(my_location, ref broadcaster);
-        AsyncCallback accept = new AsyncCallback(accept_callback);
+        AsyncCallback accept = new AsyncCallback(tcp_accept_callback);
 		listen_socket.BeginAccept(accept, tcp_data);
 		//broadcaster.BeginReceive();
 		return true;
