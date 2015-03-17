@@ -29,6 +29,7 @@ class CommunicationNode
 	}
 	class TCPState
 	{
+        public byte[] buffer;
         public IPEndPoint ep;
         //For most communications with other nodes.
         //Use of socket because it fulfills both TcpListener and TcpClient roles.
@@ -64,12 +65,20 @@ class CommunicationNode
 	private static bool node_ok;
 
     private static string err;
-	
+
+    private static void tcp_receive_callback(IAsyncResult result)
+    {
+        TCPState state = (TCPState)result;
+
+    }
+
 	private static void tcp_accept_callback(IAsyncResult result)
 	{
         TCPState state = (TCPState)result;
         Socket listener = state.listening_socket;
         state.work_socket = listener.EndAccept(result);
+        state.buffer = new byte[1024];
+        state.work_socket.BeginReceive(state.buffer, 0, 1024, 0, tcp_receive_callback, state);
 	}
 
     private static void udp_receive_callback(IAsyncResult result)
@@ -77,8 +86,25 @@ class CommunicationNode
         UDPState state = (UDPState)result;
         UdpClient listener = state.client;
         Byte[] broadcasted_msg = listener.EndReceive(result, ref state.ep);
+        Message received = new Message();
+        received.addr = System.Text.Encoding.ASCII.GetBytes(state.ep.ToString());
+        received.msg = System.Text.Encoding.ASCII.GetString(broadcasted_msg);
+        received.proto = "UDP Broadcast";
+        message_queue.Enqueue(received);
     }
-	
+
+    public void shutdown()
+    {
+        udp_data.client.Close();
+        tcp_data.listening_socket.Close();
+        tcp_data.work_socket.Close();
+    }
+
+    ~CommunicationNode()
+    {
+        shutdown();
+    }
+
 	//Iniitialize both sockets.
 	private CommunicationNode()
 	{
