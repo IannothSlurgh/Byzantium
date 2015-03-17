@@ -19,14 +19,14 @@ namespace Byzantium
         private int capacity;
         private int length;
         Boolean unique_addr;
-        MessageQueue(int _capacity)
+        public MessageQueue(int _capacity)
         {
             capacity = _capacity;
             unique_addr = false;
             length = 0;
         }
 
-        MessageQueue(int _capacity, Boolean _unique_addr):this(_capacity)
+        public MessageQueue(int _capacity, Boolean _unique_addr):this(_capacity)
         {
             unique_addr = _unique_addr;
         }
@@ -115,6 +115,11 @@ namespace Byzantium
         public int Length()
         {
             return length;
+        }
+
+        public int Capacity()
+        {
+            return capacity;
         }
     }
 }

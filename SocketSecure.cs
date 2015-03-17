@@ -5,18 +5,22 @@ using System.Net.Sockets;
 using System.Net;
 using System.Threading;
 using System.Runtime.Remoting.Messaging; //For Asynch Callbacks.
+using Byzantium;
 
-
+//A singleton class responsible for both tcp and udp broadcast communication
+//In our distributed application.
 class CommunicationNode
 {
     //IPaddresses are byte arrays of len 4. This constant refers to
     //the index that contains the host number on this subnet.
     const int HOSTNUMBERINDEX = 3;
 
+    private static CommunicationNode singleton_instance = null;
+
 	class UDPState
 	{
-		IPEndPoint ep;
-		UdpClient client;
+        public IPEndPoint ep;
+		public UdpClient client;
         public UDPState(IPEndPoint _ep, ref UdpClient _client)
         {
             client = _client;
@@ -39,34 +43,44 @@ class CommunicationNode
         }
 	}
 
-    private TCPState tcp_data;
-	private Socket listen_socket;
-	private Socket remote_socket; 
+    private static MessageQueue message_queue;
+    private static TCPState tcp_data;
+    private static UDPState udp_data;
+
+	private static Socket listen_socket;
+	private static Socket remote_socket; 
 	//Primarily for broadcasts on open LAN.
-	private UdpClient broadcaster;
+	private static UdpClient broadcaster;
 	
 	//What port is TCP socket currently associated with?
-	private int tcp_port;
+	private static int tcp_port;
 	//What port will UDP broadcast client handle on?
-	private int broadcast_port;
+	private static int broadcast_port;
 	//ip address of computer this is currently running on.
-	private IPAddress my_ip;
-	private IPAddress broadcast_ip;
+	private static IPAddress my_ip;
+	private static IPAddress broadcast_ip;
 	
 	//No critical errors have made this node inoperative.
-	private bool node_ok;
+	private static bool node_ok;
 
-    private string err;
+    private static string err;
 	
-	static void tcp_accept_callback(IAsyncResult result)
+	private static void tcp_accept_callback(IAsyncResult result)
 	{
         TCPState state = (TCPState)result;
         Socket listener = state.listening_socket;
         state.work_socket = listener.EndAccept(result);
 	}
+
+    private static void udp_receive_callback(IAsyncResult result)
+    {
+        UDPState state = (UDPState)result;
+        UdpClient listener = state.client;
+        Byte[] broadcasted_msg = listener.EndReceive(result, ref state.ep);
+    }
 	
 	//Iniitialize both sockets.
-	public CommunicationNode()
+	private CommunicationNode()
 	{
 		//Ipv4
 		AddressFamily addr_fam = AddressFamily.InterNetwork;
@@ -116,9 +130,10 @@ class CommunicationNode
         }
 		broadcast_ip = new IPAddress(ip_bytes);
 		node_ok = true;
+        message_queue = new MessageQueue(100);
 	}
 	
-	public CommunicationNode(int _tcp_port, int _broadcast_port) : this()
+	private CommunicationNode(int _tcp_port, int _broadcast_port) : this()
 	{
 		assign_ports(_tcp_port, _broadcast_port);
 	}
@@ -149,9 +164,9 @@ class CommunicationNode
 		//Thread.Start(tcp_thread);
 		//Thread.Start(broadcast_thread);
         tcp_data = new TCPState(my_location, ref listen_socket);
-		UDPState callback_state_udp = new UDPState(my_location, ref broadcaster);
-        AsyncCallback accept = new AsyncCallback(tcp_accept_callback);
-		listen_socket.BeginAccept(accept, tcp_data);
+		udp_data = new UDPState(my_location, ref broadcaster);
+        AsyncCallback tcp_accept = new AsyncCallback(tcp_accept_callback);
+		listen_socket.BeginAccept(tcp_accept, tcp_data);
 		//broadcaster.BeginReceive();
 		return true;
 	}
@@ -194,4 +209,17 @@ class CommunicationNode
 		broadcaster.Send(dgram, dgram.Length, broadcast_endpoint);
 		return true;
 	}
+    public static CommunicationNode get_instance()
+    {
+        if (singleton_instance == null)
+            singleton_instance = new CommunicationNode();
+        return singleton_instance;
+    }
+    public static CommunicationNode get_instance(int _tcp_port, int _broadcast_port)
+    {
+        if (singleton_instance == null)
+            singleton_instance = new CommunicationNode();
+        singleton_instance.assign_ports(_tcp_port, _broadcast_port);
+        return singleton_instance;
+    }
 }

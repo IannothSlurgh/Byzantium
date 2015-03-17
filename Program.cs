@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Net;
 
 namespace Byzantium
 {
@@ -29,8 +30,7 @@ namespace Byzantium
         {
             car c = test;
             texter(c);
-            CommunicationNode ss = new CommunicationNode();
-            ss.assign_ports(12000, 12000);
+            CommunicationNode ss = CommunicationNode.get_instance(12000, 12000);
             byte[] msg = Encoding.ASCII.GetBytes("Byzantine Signature");
             byte[] msg2 = Encoding.ASCII.GetBytes("Byzantine Signature");
             Console.Out.WriteLine(msg==msg2);
@@ -38,6 +38,7 @@ namespace Byzantium
             {
                 ss.broadcast(msg);
             }
+            Console.Out.WriteLine(IPAddress.Any);
             Thread.Sleep(2000);
         }
         static void texter(car c)
