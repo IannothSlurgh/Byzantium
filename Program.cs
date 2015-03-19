@@ -28,6 +28,9 @@ namespace Byzantium
         public static car test = new car(ref whatever);
         static void Main(string[] args)
         {
+            StringBuilder sb = new StringBuilder();
+            Console.Out.WriteLine(sb.ToString());
+            Console.Out.WriteLine("See");
             car c = test;
             texter(c);
             CommunicationNode ss = CommunicationNode.get_instance(12000, 12000);

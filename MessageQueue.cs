@@ -64,6 +64,11 @@ namespace Byzantium
             {
                 return false;
             }
+            //No "null messages"
+            if (_new_msg.msg.Length == 0 || _new_msg.msg == null)
+            {
+                return false;
+            }
             foreach (Message possible_msg in messages)
             {
                 if (eq_addr(_new_msg.addr, possible_msg.addr))

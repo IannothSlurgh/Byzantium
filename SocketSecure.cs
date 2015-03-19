@@ -5,6 +5,7 @@ using System.Net.Sockets;
 using System.Net;
 using System.Threading;
 using System.Runtime.Remoting.Messaging; //For Asynch Callbacks.
+using System.Text;
 using Byzantium;
 
 //A singleton class responsible for both tcp and udp broadcast communication
@@ -29,7 +30,8 @@ class CommunicationNode
 	}
 	class TCPState
 	{
-        public byte[] buffer;
+        public byte[] buffer = new byte[1024];
+        public StringBuilder message_concat = new StringBuilder();
         public IPEndPoint ep;
         //For most communications with other nodes.
         //Use of socket because it fulfills both TcpListener and TcpClient roles.
@@ -69,7 +71,24 @@ class CommunicationNode
     private static void tcp_receive_callback(IAsyncResult result)
     {
         TCPState state = (TCPState)result;
-
+        int num_received = state.work_socket.EndReceive(result);
+        //0 means the sending socket closed. The message was completed.
+        if (num_received == 0)
+        {
+            Message m = new Message();
+            m.addr = state.ep.Address.GetAddressBytes();
+            m.msg = state.message_concat.ToString();
+            m.proto = "TCP";
+            //mq prevents empty messages in the case a client connects
+            //and subsequently closes without sending any data.
+            message_queue.Enqueue(m);
+        }
+        else
+        {
+            //We are still eagerly awaiting what else the sender may have to say.
+            state.message_concat.Append(Encoding.ASCII.GetString(state.buffer, 0, num_received));
+            state.work_socket.BeginReceive(state.buffer, 0, 1024, 0, tcp_receive_callback, state);
+        }
     }
 
 	private static void tcp_accept_callback(IAsyncResult result)
@@ -77,7 +96,6 @@ class CommunicationNode
         TCPState state = (TCPState)result;
         Socket listener = state.listening_socket;
         state.work_socket = listener.EndAccept(result);
-        state.buffer = new byte[1024];
         state.work_socket.BeginReceive(state.buffer, 0, 1024, 0, tcp_receive_callback, state);
 	}
 
@@ -95,9 +113,24 @@ class CommunicationNode
 
     public void shutdown()
     {
-        udp_data.client.Close();
-        tcp_data.listening_socket.Close();
-        tcp_data.work_socket.Close();
+        if (udp_data != null)
+        {
+            if (udp_data.client != null)
+            {
+                udp_data.client.Close();
+            }
+        }
+        if (tcp_data != null)
+        {
+            if (tcp_data.listening_socket != null)
+            {
+                tcp_data.listening_socket.Close();
+            }
+            if (tcp_data.work_socket != null)
+            {
+                tcp_data.work_socket.Close();
+            }
+        }
     }
 
     ~CommunicationNode()
@@ -235,6 +268,23 @@ class CommunicationNode
 		broadcaster.Send(dgram, dgram.Length, broadcast_endpoint);
 		return true;
 	}
+
+    //Talk to a specific ipaddress, and give it a message.
+    public bool send(byte[] data, byte[] addr)
+    {
+        //Ports have not been assigned, failure inevitable.
+        if (broadcast_port == 0 || tcp_port == 0)
+        {
+            return false;
+        }
+        return true;
+    }
+
+    public bool send(byte[] data, IPAddress addr)
+    {
+        return send(data, addr.GetAddressBytes());
+    }
+
     public static CommunicationNode get_instance()
     {
         if (singleton_instance == null)
