@@ -24,17 +24,25 @@ namespace Byzantium
             addresses = new List<IPAddress>(_capacity);
             capacity = _capacity;
             length = 0;
-            last_location = 0;
         }
 
-        private bool greater(IPAddress one, IPAddress two)
+        private static bool greater(IPAddress one, IPAddress two)
         {
             return one.GetAddressBytes()[3] > two.GetAddressBytes()[3];
         }
 
-        private bool lesser(IPAddress one, IPAddress two)
+        private static bool lesser(IPAddress one, IPAddress two)
         {
             return one.GetAddressBytes()[3] < two.GetAddressBytes()[3];
+        }
+
+        private static int compare_addr(IPAddress one, IPAddress two)
+        {
+            if (greater(one, two))
+                return 1;
+            if (lesser(one, two))
+                return -1;
+            return 0;
         }
 
         //Return an index max for the for loop of binary search.
@@ -56,6 +64,7 @@ namespace Byzantium
             //If it was found, at what index?
             //If not, what was the last index search tried?
             public int last_location;
+            public bool greater;
         }
 
         //Use binary search to look for ipaddress in list.
@@ -82,6 +91,8 @@ namespace Byzantium
                     if (mid == temp)
                     {
                         //False.
+                        result.last_location = temp;
+                        result.greater = false;
                         return result;
                     }
                     top = temp;
@@ -94,6 +105,8 @@ namespace Byzantium
                         if (mid == temp)
                         {
                             //false
+                            result.last_location = temp;
+                            result.greater = true;
                             return result;
                         }
                         bottom = temp+1;
@@ -128,16 +141,14 @@ namespace Byzantium
                 addresses.Add(a);
                 return true;
             }
-            find_struct find_result = find_actual(a);
-            if (find_result.found)
+            //We want unique addrs only.
+            if (find(a))
             {
                 return false;
             }
-            else
-            {
-
-            }
-            return false;
+            addresses.Add(a);
+            addresses.Sort(compare_addr);
+            return true;
         }
     }
 }
