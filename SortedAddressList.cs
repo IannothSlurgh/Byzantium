@@ -36,13 +36,16 @@ namespace Byzantium
             return one.GetAddressBytes()[3] < two.GetAddressBytes()[3];
         }
 
-        private static int compare_addr(IPAddress one, IPAddress two)
+        class ipcomparer : IComparer<IPAddress>
         {
-            if (greater(one, two))
-                return 1;
-            if (lesser(one, two))
-                return -1;
-            return 0;
+            public int Compare(IPAddress one, IPAddress two)
+            {
+                if (greater(one, two))
+                    return 1;
+                if (lesser(one, two))
+                    return -1;
+                return 0;
+            }
         }
 
         //Return an index max for the for loop of binary search.
@@ -57,26 +60,14 @@ namespace Byzantium
             return times;
         }
 
-        struct find_struct
-        {
-            //Was this IPAddress in the sorted list?
-            public bool found;
-            //If it was found, at what index?
-            //If not, what was the last index search tried?
-            public int last_location;
-            public bool greater;
-        }
-
         //Use binary search to look for ipaddress in list.
-        private find_struct find_actual(IPAddress ip)
+        //Could have used BinarySearch<t>, was oversight.
+        private bool find(IPAddress ip)
         {
-            find_struct result = new find_struct();
-            result.found = false;
             //Empty means not inside.
             if (length == 0)
             {
-                result.found = false;
-                return result;
+                return false;
             }
             int max_times = log_2(length);
             int mid = length / 2;
@@ -90,10 +81,7 @@ namespace Byzantium
                     mid = (mid + bottom) / 2;
                     if (mid == temp)
                     {
-                        //False.
-                        result.last_location = temp;
-                        result.greater = false;
-                        return result;
+                        return false;
                     }
                     top = temp;
                 }
@@ -104,28 +92,17 @@ namespace Byzantium
                         mid = (mid + top) / 2;
                         if (mid == temp)
                         {
-                            //false
-                            result.last_location = temp;
-                            result.greater = true;
-                            return result;
+                            return false;
                         }
                         bottom = temp+1;
                     }
                     else
                     {
-                        result.last_location = mid;
-                        result.found = true;
-                        return result;
+                        return true;
                     }
                 }
             }
-            return result;
-        }
-
-        //Used by outsiders to binary search for an IP.
-        public bool find(IPAddress ip)
-        {
-            return find_actual(ip).found;
+            return false;
         }
 
         public bool add(IPAddress a)
@@ -138,16 +115,37 @@ namespace Byzantium
             //Empty requires no sorting.
             if (length == 0)
             {
+                length += 1;
                 addresses.Add(a);
                 return true;
             }
             //We want unique addrs only.
-            if (find(a))
+            if (addresses.BinarySearch(a, new ipcomparer()) >= 0)
             {
                 return false;
             }
+            length += 1;
             addresses.Add(a);
-            addresses.Sort(compare_addr);
+            addresses.Sort(new ipcomparer());
+            return true;
+        }
+
+        //Read-only indexer.
+        public IPAddress this[int index]
+        {
+            get
+            {
+                return addresses[index];
+            }
+        }
+
+        public bool remove(IPAddress a)
+        {
+            int loc = addresses.BinarySearch(a, new ipcomparer());
+            if (loc < 0)
+                return false;
+            //No sorting needed. Removing an item will maintain order.
+            addresses.RemoveAt(loc);
             return true;
         }
     }

@@ -28,6 +28,22 @@ namespace Byzantium
         public static car test = new car(ref whatever);
         static void Main(string[] args)
         {
+            SortedAddressList sal = new SortedAddressList(10);
+            byte[] ab = new byte[4];
+            ab[3] = 92;
+            byte[] bb = new byte[4];
+            bb[3] = 153;
+            byte[] cb = new byte[4];
+            cb[3] = 120;
+            IPAddress a = new IPAddress(ab);
+            IPAddress b = new IPAddress(bb);
+            IPAddress d = new IPAddress(cb);
+            sal.add(a);
+            sal.add(b);
+            sal.add(d);
+            Console.Out.WriteLine(sal[0].ToString());
+            Console.Out.WriteLine(sal[1].ToString());
+            Console.Out.WriteLine(sal[2].ToString());
             StringBuilder sb = new StringBuilder();
             Console.Out.WriteLine(sb.ToString());
             Console.Out.WriteLine("See");
