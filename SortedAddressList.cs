@@ -9,7 +9,7 @@ namespace Byzantium
     //A fixed capacity array of IpAddresses
     //in the same subnet which are sorted
     //from least to greatest.
-    class SortedAddressList
+    public class SortedAddressList
     {
         private List<IPAddress> addresses;
         private int capacity;
