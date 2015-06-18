@@ -79,7 +79,7 @@ class CommunicationNode
 
     private static void tcp_receive_callback(IAsyncResult result)
     {
-        TCPState state = (TCPState)result;
+        TCPState state = (TCPState)result.AsyncState;
         int num_received = state.work_socket.EndReceive(result);
         //0 means the sending socket closed. The message was completed.
         if (num_received == 0)
@@ -102,7 +102,7 @@ class CommunicationNode
 
 	private static void tcp_accept_callback(IAsyncResult result)
 	{
-        TCPState state = (TCPState)result;
+        TCPState state = (TCPState)result.AsyncState;
         Socket listener = state.listening_socket;
         state.work_socket = listener.EndAccept(result);
         state.work_socket.BeginReceive(state.buffer, 0, 1024, 0, tcp_receive_callback, state);
@@ -110,9 +110,10 @@ class CommunicationNode
 
     private static void udp_receive_callback(IAsyncResult result)
     {
-        UDPState state = (UDPState)result;
+        UDPState state = (UDPState)result.AsyncState;
         UdpClient listener = state.client;
         Byte[] broadcasted_msg = listener.EndReceive(result, ref state.ep);
+        listener.BeginReceive(udp_receive_callback, state);
         Message received = new Message();
         received.addr = System.Text.Encoding.ASCII.GetBytes(state.ep.ToString());
         received.msg = System.Text.Encoding.ASCII.GetString(broadcasted_msg);
@@ -278,7 +279,7 @@ class CommunicationNode
 		udp_data = new UDPState(my_location, ref broadcaster);
         AsyncCallback tcp_accept = new AsyncCallback(tcp_accept_callback);
 		//listen_socket.BeginAccept(tcp_accept, tcp_data);
-        broadcaster.BeginReceive(udp_receive_callback, udp_data);
+        broadcaster.BeginReceive( new AsyncCallback(udp_receive_callback), udp_data );
 		return true;
 	}
 	
