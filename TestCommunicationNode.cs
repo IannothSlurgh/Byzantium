@@ -8,10 +8,10 @@ namespace ByzantiumUnitTests
     public class TestCommunicationNode
     {
         [TestMethod]
-        public void TestMethod1()
+        public void AdaptorUnchosen()
         {
             CommunicationNode test_node = CommunicationNode.get_instance(12000, 12000);
-            test_node.node_is_ok();
+            Assert.AreEqual(test_node.getIntErr(), NodeErrors.NETWORK_ADAPTOR_UNCHOSEN);
         }
         [TestMethod]
         public void TestMethod2()

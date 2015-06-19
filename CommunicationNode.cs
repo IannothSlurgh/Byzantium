@@ -55,7 +55,7 @@ class CommunicationNode
 	private static Socket listen_socket;
 	private static Socket remote_socket; 
 	//Primarily for broadcasts on open LAN.
-	private static UdpClient broadcaster;
+	private static UdpClient broadcaster = null;
 	
 	//What port is TCP socket currently associated with?
 	private static int tcp_port;
@@ -212,6 +212,11 @@ class CommunicationNode
         }
     }
 
+    public int getIntErr()
+    {
+        return int_err;
+    }
+
 	private CommunicationNode(int _tcp_port, int _broadcast_port) : this()
 	{
 		assign_ports(_tcp_port, _broadcast_port);
@@ -219,6 +224,10 @@ class CommunicationNode
 	
 	public void assign_ports(int _tcp_port, int _broadcast_port)
 	{
+        if (broadcaster != null)
+        {
+            broadcaster.Close();
+        }
 		tcp_port = _tcp_port;
 		broadcast_port = _broadcast_port;
 		broadcaster = new UdpClient(broadcast_port, AddressFamily.InterNetwork);
@@ -251,9 +260,9 @@ class CommunicationNode
                 byte[] ip_bytes = my_ip.GetAddressBytes();
                 ip_bytes[HOSTNUMBERINDEX] = 255;
                 broadcast_ip = new IPAddress(ip_bytes);
-                if (NodeErrors.hasErr(int_err, NodeErrors.PORTS_UNCHOSEN))
+                if (NodeErrors.hasErr(int_err, NodeErrors.NETWORK_ADAPTOR_UNCHOSEN))
                 {
-                    int_err = NodeErrors.toggleErr(int_err, NodeErrors.PORTS_UNCHOSEN);
+                    int_err = NodeErrors.toggleErr(int_err, NodeErrors.NETWORK_ADAPTOR_UNCHOSEN);
                     checkNode();
                 }
                 return true;
@@ -265,7 +274,7 @@ class CommunicationNode
 	//User can determine if errors have broken node.
 	public bool node_is_ok()
 	{
-		return node_ok;
+		return int_err == 0;
 	}
 	
 	//
