@@ -271,6 +271,11 @@ class CommunicationNode
         return false;
     }
 
+    public Message nextMessage()
+    {
+        return message_queue.Dequeue();
+    }
+
 	//User can determine if errors have broken node.
 	public bool node_is_ok()
 	{
@@ -278,19 +283,25 @@ class CommunicationNode
 	}
 	
 	//
-	public bool listen()
+	public bool listen_broadcast()
 	{
 		//Prepare both the UDP broadcast port and the TCP ports for messages.
-		IPEndPoint my_location = new IPEndPoint(my_ip, tcp_port);
-		//listen_socket.Bind(my_location);
-		//listen_socket.Listen(10);
-        tcp_data = new TCPState(my_location, ref listen_socket);
+		IPEndPoint my_location = new IPEndPoint(my_ip, broadcast_port);
 		udp_data = new UDPState(my_location, ref broadcaster);
-        AsyncCallback tcp_accept = new AsyncCallback(tcp_accept_callback);
-		//listen_socket.BeginAccept(tcp_accept, tcp_data);
         broadcaster.BeginReceive( new AsyncCallback(udp_receive_callback), udp_data );
 		return true;
 	}
+
+    public bool listen_tcp()
+    {
+        IPEndPoint my_location = new IPEndPoint(my_ip, tcp_port);
+        listen_socket.Bind(my_location);
+        listen_socket.Listen(10);
+        tcp_data = new TCPState(my_location, ref listen_socket);
+        AsyncCallback tcp_accept = new AsyncCallback(tcp_accept_callback);
+        listen_socket.BeginAccept(tcp_accept, tcp_data);
+        return true;
+    }
 	
 	/*public bool close_connection
 	{
@@ -339,6 +350,13 @@ class CommunicationNode
         {
             return false;
         }
+        return true;
+    }
+
+    public bool send(byte[] data)
+    {
+        listen_socket.Send(data);
+        listen_socket.Disconnect(true);
         return true;
     }
 

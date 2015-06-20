@@ -259,6 +259,26 @@ namespace Byzantium
                 }
             }
             Console.Out.WriteLine(NodeErrors.getStringErr(my_node.getIntErr()));
+            control(my_node);
+        }
+
+        static void control(CommunicationNode my_node)
+        {
+            String signal = "Byzantine General " + System.Environment.MachineName;
+            my_node.listen_broadcast();
+            Thread.Sleep(10000);
+            Message most_recent = my_node.nextMessage();
+            if (!most_recent.is_bad)
+            {
+                my_node.connect(Encoding.ASCII.GetString(most_recent.addr));
+                my_node.send(Encoding.ASCII.GetBytes(signal));
+            }
+            else
+            {
+                my_node.listen_tcp();
+                my_node.broadcast(Encoding.ASCII.GetBytes(signal));
+            }
+            Thread.Sleep(10000);
         }
 
     }

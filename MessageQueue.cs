@@ -100,7 +100,7 @@ namespace Byzantium
             return true;
         }
 
-        Message Dequeue()
+        public Message Dequeue()
         {
             if (length == 0)
             {
