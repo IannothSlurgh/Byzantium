@@ -49,7 +49,7 @@ namespace Byzantium
                 ss.listen();
             }
             //Console.Out.WriteLine(IPAddress.Any);*/
-            Thread.Sleep(2000);
+            Thread.Sleep(4000);
         }
         static void first_time()
         {
@@ -266,19 +266,29 @@ namespace Byzantium
         {
             String signal = "Byzantine General " + System.Environment.MachineName;
             my_node.listen_broadcast();
+            Console.Out.WriteLine("Waiting for broadcast...");
             Thread.Sleep(10000);
             Message most_recent = my_node.nextMessage();
             if (!most_recent.is_bad)
             {
                 my_node.connect(Encoding.ASCII.GetString(most_recent.addr));
                 my_node.send(Encoding.ASCII.GetBytes(signal));
+                Console.Out.WriteLine(most_recent.msg);
+                Console.Out.WriteLine("Broadcast received, establishing TCP connection with broadcaster.");
             }
             else
             {
                 my_node.listen_tcp();
                 my_node.broadcast(Encoding.ASCII.GetBytes(signal));
+                Console.Out.WriteLine("No broadcast, broadcasting and waiting for TCP connection.");
             }
             Thread.Sleep(10000);
+            most_recent = my_node.nextMessage();
+            if (!most_recent.is_bad)
+            {
+                Console.Out.WriteLine(most_recent.msg);
+                Console.Out.WriteLine("TCP message received.");
+            }
         }
 
     }
