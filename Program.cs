@@ -273,6 +273,7 @@ namespace Byzantium
             {
                 my_node.connect(Encoding.ASCII.GetString(most_recent.addr));
                 my_node.send(Encoding.ASCII.GetBytes(signal));
+                //my_node.send(new byte[0]);
                 Console.Out.WriteLine(most_recent.msg);
                 Console.Out.WriteLine("Broadcast received, establishing TCP connection with broadcaster.");
             }
@@ -287,7 +288,7 @@ namespace Byzantium
             if (!most_recent.is_bad)
             {
                 Console.Out.WriteLine(most_recent.msg);
-                Console.Out.WriteLine("TCP message received from "+Encoding.ASCII.GetString(most_recent.addr)+".");
+                Console.Out.WriteLine("TCP message received from "+new IPAddress(most_recent.addr)+".");
             }
         }
     }

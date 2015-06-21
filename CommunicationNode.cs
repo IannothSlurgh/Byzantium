@@ -316,6 +316,8 @@ class CommunicationNode
 	
 	public bool connect(string target_address)
 	{
+        int colon_pos = target_address.IndexOf(":");
+        target_address = target_address.Substring(0, colon_pos);
 		IPAddress remote_ip;
 		try
 		{
