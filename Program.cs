@@ -287,9 +287,8 @@ namespace Byzantium
             if (!most_recent.is_bad)
             {
                 Console.Out.WriteLine(most_recent.msg);
-                Console.Out.WriteLine("TCP message received.");
+                Console.Out.WriteLine("TCP message received from "+Encoding.ASCII.GetString(most_recent.addr)+".");
             }
         }
-
     }
 }

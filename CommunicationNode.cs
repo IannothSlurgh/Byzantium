@@ -1,5 +1,6 @@
 
 using System;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Net.Sockets;
 using System.Net.NetworkInformation;
@@ -119,7 +120,12 @@ class CommunicationNode
         received.msg = System.Text.Encoding.ASCII.GetString(broadcasted_msg);
         received.proto = "UDP Broadcast";
         Console.Out.WriteLine(Encoding.ASCII.GetString(broadcasted_msg));
-        message_queue.Enqueue(received);
+        //We don't want our message queue to store things we said.
+        string my_ip_with_port = my_ip.ToString() + ":" + broadcast_port;
+        if (!Encoding.Default.GetString(received.addr).Equals(my_ip_with_port))
+        {
+            message_queue.Enqueue(received);
+        }
     }
 
     public void shutdown()
@@ -355,8 +361,15 @@ class CommunicationNode
 
     public bool send(byte[] data)
     {
-        listen_socket.Send(data);
-        listen_socket.Disconnect(true);
+        if (listen_socket.Connected)
+        {
+            listen_socket.Send(data);
+            listen_socket.Disconnect(true);
+        }
+        else
+        {
+            Console.Out.WriteLine("No Connection");
+        }
         return true;
     }
 
@@ -377,5 +390,10 @@ class CommunicationNode
             singleton_instance = new CommunicationNode();
         singleton_instance.assign_ports(_tcp_port, _broadcast_port);
         return singleton_instance;
+    }
+
+    public IPAddress getMyIP()
+    {
+        return my_ip;
     }
 }
