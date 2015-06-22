@@ -2,25 +2,78 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Net;
-using System.Collections.Generic;
 using System.IO;
 
 namespace Byzantium
 {
-    class Program
+    public class ByzantiumProtocol
     {
-        static void Main(string[] args)
+        List<IPAddress> friendly;
+        List<IPAddress> pending;
+        CommunicationNode my_node = null;
+        Thread control_thread;
+        public ByzantiumProtocol()
         {
-            //one_code();
-            ByzantiumProtocol byz = new ByzantiumProtocol();
-            byz.init();
-            Thread.Sleep(20000);
-            byz.terminate();
+            control_thread = new Thread(control);
         }
-        static void first_time()
+
+        ~ByzantiumProtocol()
+        {
+            if (control_thread.IsAlive)
+            {
+                control_thread.Abort();
+            }
+        }
+
+        public void init()
+        {
+            WriteSettings();
+            my_node = ReadSettings();
+            while (my_node == null)
+            {
+                Console.Out.WriteLine("Initialization of the communication node failed.");
+                Console.Out.WriteLine("Would you like to try to update its settings?");
+                Console.Out.WriteLine("1)Yes");
+                Console.Out.WriteLine("2)No");
+                int setting = 0;
+                string user_input = Console.In.ReadLine();
+                if (!int.TryParse(user_input, out setting))
+                {
+                    if (user_input.Contains("y") || user_input.Contains("Y"))
+                    {
+                        setting = 1;
+                    }
+                    else
+                    {
+                        if (user_input.Contains("n") || user_input.Contains("N"))
+                        {
+                            setting = 2;
+                        }
+                    }
+                }
+                if (setting == 1)
+                {
+                    if (File.Exists("ByzantiumSettings.dat"))
+                    {
+                        File.Delete("ByzantiumSettings.dat");
+                    }
+                    WriteSettings();
+                    my_node = ReadSettings();
+                }
+                if (setting == 2)
+                {
+                    return;
+                }
+            }
+            Console.Out.WriteLine(NodeErrors.getStringErr(my_node.getIntErr()));
+            control_thread.Start();
+            //Thread.Sleep(4000);
+        }
+
+        void WriteSettings()
         {
             if (!File.Exists("ByzantiumSettings.dat"))
             {
@@ -116,7 +169,7 @@ namespace Byzantium
             }
         }
 
-        static CommunicationNode second_time()
+        CommunicationNode ReadSettings()
         {
             StreamReader setting_reader = new StreamReader("ByzantiumSettings.dat");
             string text = "";
@@ -187,80 +240,48 @@ namespace Byzantium
             return null;
         }
 
-        static void one_code()
+        void control()
         {
-            first_time();
-            CommunicationNode my_node = second_time();
-            while (my_node == null)
+            while (true)
             {
-                Console.Out.WriteLine("Initialization of the communication node failed.");
-                Console.Out.WriteLine("Would you like to try to update its settings?");
-                Console.Out.WriteLine("1)Yes");
-                Console.Out.WriteLine("2)No");
-                int setting = 0;
-                string user_input = Console.In.ReadLine();
-                if (!int.TryParse(user_input, out setting))
+                String signal = "Byzantine General " + System.Environment.MachineName;
+                my_node.listen_broadcast();
+                Console.Out.WriteLine("Waiting for broadcast...");
+                Thread.Sleep(1000);
+                Message most_recent = my_node.nextMessage();
+                if (!most_recent.is_bad)
                 {
-                    if (user_input.Contains("y") || user_input.Contains("Y"))
-                    {
-                        setting = 1;
-                    }
-                    else
-                    {
-                        if (user_input.Contains("n") || user_input.Contains("N"))
-                        {
-                            setting = 2;
-                        }
-                    }
+                    Console.Out.WriteLine("Broadcast received, establishing TCP connection with broadcaster.");
+                    my_node.connect(Encoding.ASCII.GetString(most_recent.addr));
+                    my_node.send(Encoding.ASCII.GetBytes(signal));
+                    //my_node.send(new byte[0]);
+                    Console.Out.WriteLine(most_recent.msg);
+                    Thread.Sleep(2000);
                 }
-                if (setting == 1)
+                else
                 {
-                    if (File.Exists("ByzantiumSettings.dat"))
-                    {
-                        File.Delete("ByzantiumSettings.dat");
-                    }
-                    first_time();
-                    my_node = second_time();
+                    my_node.listen_tcp();
+                    my_node.broadcast(Encoding.ASCII.GetBytes(signal));
+                    Console.Out.WriteLine("No broadcast, broadcasting and waiting for TCP connection.");
+                    Thread.Sleep(3000);
                 }
-                if (setting == 2)
+                most_recent = my_node.nextMessage();
+                if (!most_recent.is_bad)
                 {
-                    return;
+                    //Console.Out.WriteLine(most_recent.proto);
+                    //Console.Out.WriteLine(most_recent.msg);
+                    Console.Out.WriteLine("TCP message received from " + Encoding.Default.GetString(most_recent.addr) + ".");
                 }
             }
-            Console.Out.WriteLine(NodeErrors.getStringErr(my_node.getIntErr()));
-            control(my_node);
         }
 
-        static void control(CommunicationNode my_node)
+        public void terminate()
         {
-            String signal = "Byzantine General " + System.Environment.MachineName;
-            my_node.listen_broadcast();
-            Console.Out.WriteLine("Waiting for broadcast...");
-            Thread.Sleep(10000);
-            Message most_recent = my_node.nextMessage();
-            if (!most_recent.is_bad)
+            if (control_thread.IsAlive)
             {
-                Console.Out.WriteLine("Broadcast received, establishing TCP connection with broadcaster.");
-                my_node.connect(Encoding.ASCII.GetString(most_recent.addr));
-                my_node.send(Encoding.ASCII.GetBytes(signal));
-                //my_node.send(new byte[0]);
-                Console.Out.WriteLine(most_recent.msg);
-                Thread.Sleep(2000);
-            }
-            else
-            {
-                my_node.listen_tcp();
-                my_node.broadcast(Encoding.ASCII.GetBytes(signal));
-                Console.Out.WriteLine("No broadcast, broadcasting and waiting for TCP connection.");
-                Thread.Sleep(10000);
-            }
-            most_recent = my_node.nextMessage();
-            if (!most_recent.is_bad)
-            {
-                //Console.Out.WriteLine(most_recent.proto);
-                //Console.Out.WriteLine(most_recent.msg);
-                Console.Out.WriteLine("TCP message received from "+Encoding.Default.GetString(most_recent.addr)+".");
+                control_thread.Abort();
             }
         }
+
     }
 }

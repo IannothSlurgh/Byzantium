@@ -54,7 +54,7 @@ class CommunicationNode
     private static UDPState udp_data;
 
 	private static Socket listen_socket;
-	private static Socket remote_socket; 
+	private static Socket connect_socket; 
 	//Primarily for broadcasts on open LAN.
 	private static UdpClient broadcaster = null;
 	
@@ -81,7 +81,7 @@ class CommunicationNode
     private static void tcp_receive_callback(IAsyncResult result)
     {
         TCPState state = (TCPState)result.AsyncState;
-        Console.Out.WriteLine(state.work_socket.RemoteEndPoint);
+        //Console.Out.WriteLine(state.work_socket.RemoteEndPoint);
         int num_received = state.work_socket.EndReceive(result);
         //0 means the sending socket closed. The message was completed.
         if (num_received == 0)
@@ -171,6 +171,7 @@ class CommunicationNode
 		//Tcp
 		ProtocolType proto_type = ProtocolType.Tcp;
 		listen_socket = new Socket(addr_fam, sock_type, proto_type);
+        connect_socket = new Socket(addr_fam, sock_type, proto_type);
 		//Get local ip address of computer this code is running on.
         NetworkInterface[] all_adaptors = NetworkInterface.GetAllNetworkInterfaces();
 		//Length varies. We only care about ipv4 in this program.
@@ -308,8 +309,11 @@ class CommunicationNode
     public bool listen_tcp()
     {
         IPEndPoint my_location = new IPEndPoint(my_ip, tcp_port);
-        listen_socket.Bind(my_location);
-        listen_socket.Listen(10);
+        if (!listen_socket.IsBound)
+        {
+            listen_socket.Bind(my_location);
+            listen_socket.Listen(10);
+        }
         tcp_data = new TCPState(my_location, ref listen_socket);
         AsyncCallback tcp_accept = new AsyncCallback(tcp_accept_callback);
         listen_socket.BeginAccept(tcp_accept, tcp_data);
@@ -343,7 +347,7 @@ class CommunicationNode
             str_err = e.ToString();
 			return false;
 		}
-		listen_socket.Connect(remote_ip, tcp_port);
+		connect_socket.Connect(remote_ip, tcp_port);
 		return true;
 	}
 	
@@ -373,10 +377,10 @@ class CommunicationNode
 
     public bool send(byte[] data)
     {
-        if (listen_socket.Connected)
+        if (connect_socket.Connected)
         {
-            listen_socket.Send(data);
-            listen_socket.Disconnect(true);
+            connect_socket.Send(data);
+            connect_socket.Disconnect(true);
         }
         else
         {
