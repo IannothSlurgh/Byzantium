@@ -81,12 +81,16 @@ class CommunicationNode
     private static void tcp_receive_callback(IAsyncResult result)
     {
         TCPState state = (TCPState)result.AsyncState;
+        Console.Out.WriteLine(state.work_socket.RemoteEndPoint);
         int num_received = state.work_socket.EndReceive(result);
         //0 means the sending socket closed. The message was completed.
         if (num_received == 0)
         {
             Message m = new Message();
-            m.addr = state.ep.Address.GetAddressBytes();
+            string addr_with_port = state.work_socket.RemoteEndPoint.ToString();
+            int colon_pos = addr_with_port.IndexOf(":");
+            addr_with_port = addr_with_port.Substring(0, colon_pos);
+            m.addr = Encoding.Default.GetBytes(addr_with_port);
             m.msg = state.message_concat.ToString();
             m.proto = "TCP";
             //mq prevents empty messages in the case a client connects
