@@ -116,12 +116,15 @@ class CommunicationNode
         Byte[] broadcasted_msg = listener.EndReceive(result, ref state.ep);
         listener.BeginReceive(udp_receive_callback, state);
         Message received = new Message();
-        received.addr = System.Text.Encoding.ASCII.GetBytes(state.ep.ToString());
+        string preprocessed_addr = state.ep.ToString();
+        int colon_pos = preprocessed_addr.IndexOf(":");
+        preprocessed_addr = preprocessed_addr.Substring(0, colon_pos);
+        received.addr = System.Text.Encoding.ASCII.GetBytes(preprocessed_addr);
         received.msg = System.Text.Encoding.ASCII.GetString(broadcasted_msg);
         received.proto = "UDP Broadcast";
-        Console.Out.WriteLine(Encoding.ASCII.GetString(broadcasted_msg));
+        //Console.Out.WriteLine(Encoding.ASCII.GetString(broadcasted_msg));
         //We don't want our message queue to store things we said.
-        string my_ip_with_port = my_ip.ToString() + ":" + broadcast_port;
+        string my_ip_with_port = my_ip.ToString();
         if (!Encoding.Default.GetString(received.addr).Equals(my_ip_with_port))
         {
             message_queue.Enqueue(received);
@@ -316,8 +319,11 @@ class CommunicationNode
 	
 	public bool connect(string target_address)
 	{
-        int colon_pos = target_address.IndexOf(":");
-        target_address = target_address.Substring(0, colon_pos);
+        if (target_address.Contains(":"))
+        {
+            int colon_pos = target_address.IndexOf(":");
+            target_address = target_address.Substring(0, colon_pos);
+        }
 		IPAddress remote_ip;
 		try
 		{

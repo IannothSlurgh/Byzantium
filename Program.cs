@@ -276,17 +276,19 @@ namespace Byzantium
                 //my_node.send(new byte[0]);
                 Console.Out.WriteLine(most_recent.msg);
                 Console.Out.WriteLine("Broadcast received, establishing TCP connection with broadcaster.");
+                Thread.Sleep(2000);
             }
             else
             {
                 my_node.listen_tcp();
                 my_node.broadcast(Encoding.ASCII.GetBytes(signal));
                 Console.Out.WriteLine("No broadcast, broadcasting and waiting for TCP connection.");
+                Thread.Sleep(10000);
             }
-            Thread.Sleep(10000);
             most_recent = my_node.nextMessage();
             if (!most_recent.is_bad)
             {
+                Console.Out.WriteLine(most_recent.proto);
                 Console.Out.WriteLine(most_recent.msg);
                 Console.Out.WriteLine("TCP message received from "+new IPAddress(most_recent.addr)+".");
             }
