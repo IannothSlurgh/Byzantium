@@ -49,7 +49,8 @@ class CommunicationNode
         }
 	}
 
-    private static MessageQueue message_queue;
+    private static MessageQueue broadcast_messages;
+    private static MessageQueue tcp_messages;
     private static TCPState tcp_data;
     private static UDPState udp_data;
 
@@ -95,7 +96,7 @@ class CommunicationNode
             m.proto = "TCP";
             //mq prevents empty messages in the case a client connects
             //and subsequently closes without sending any data.
-            message_queue.Enqueue(m);
+            tcp_messages.Enqueue(m);
         }
         else
         {
@@ -131,7 +132,7 @@ class CommunicationNode
         string my_ip_with_port = my_ip.ToString();
         if (!Encoding.Default.GetString(received.addr).Equals(my_ip_with_port))
         {
-            message_queue.Enqueue(received);
+            broadcast_messages.Enqueue(received);
         }
     }
 
@@ -155,15 +156,33 @@ class CommunicationNode
         }
         if (tcp_data != null)
         {
+
             if (tcp_data.listening_socket != null)
             {
-                tcp_data.listening_socket.Shutdown(SocketShutdown.Both);
+                if (tcp_data.listening_socket.Connected)
+                {
+                    tcp_data.listening_socket.Shutdown(SocketShutdown.Both);
+                    tcp_data.listening_socket.Disconnect(false);
+                }
                 tcp_data.listening_socket.Close();
             }
             if (tcp_data.work_socket != null)
             {
-                tcp_data.work_socket.Shutdown(SocketShutdown.Both);
+                if (tcp_data.work_socket.Connected)
+                {
+                    tcp_data.work_socket.Shutdown(SocketShutdown.Both);
+                    tcp_data.work_socket.Disconnect(false);
+                }
                 tcp_data.work_socket.Close();
+            }
+            if (connect_socket != null)
+            {
+                if (connect_socket.Connected)
+                {
+                    connect_socket.Shutdown(SocketShutdown.Both);
+                    connect_socket.Disconnect(false);
+                }
+                connect_socket.Close();
             }
         }
     }
@@ -226,7 +245,8 @@ class CommunicationNode
         ip_bytes[HOSTNUMBERINDEX] = 255;
 		broadcast_ip = new IPAddress(ip_bytes);
 		node_ok = true;
-        message_queue = new MessageQueue(100);
+        broadcast_messages = new MessageQueue(100);
+        tcp_messages = new MessageQueue(100);
 	}
 	
     private void checkNode()
@@ -296,10 +316,20 @@ class CommunicationNode
         return false;
     }
 
-    public Message nextMessage()
+    public Message nextMessageBroadcast()
+    {
+        return broadcast_messages.Dequeue();
+    }
+
+    public Message nextMessageTCP()
+    {
+        return tcp_messages.Dequeue();
+    }
+
+    /*public Message nextMessage()
     {
         return message_queue.Dequeue();
-    }
+    }*/
 
 	//User can determine if errors have broken node.
 	public bool node_is_ok()

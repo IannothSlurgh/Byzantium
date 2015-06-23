@@ -248,7 +248,7 @@ namespace Byzantium
                 my_node.listen_broadcast();
                 Console.Out.WriteLine("Waiting for broadcast...");
                 Thread.Sleep(1000);
-                Message most_recent = my_node.nextMessage();
+                Message most_recent = my_node.nextMessageBroadcast();
                 if (!most_recent.is_bad)
                 {
                     Console.Out.WriteLine("Broadcast received, establishing TCP connection with broadcaster.");
@@ -266,7 +266,7 @@ namespace Byzantium
                     Console.Out.WriteLine("No broadcast, broadcasting and waiting for TCP connection.");
                     Thread.Sleep(3000);
                 }
-                most_recent = my_node.nextMessage();
+                most_recent = my_node.nextMessageTCP();
                 if (!most_recent.is_bad)
                 {
                     Console.Out.WriteLine(most_recent.proto);
