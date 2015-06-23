@@ -84,7 +84,7 @@ namespace Byzantium
                             //If user did not specify only one message
                             //Per address, Only ignore duplicate messages
                             //from a particular address.
-                            if (possible_msg.msg == _new_msg.msg)
+                            if (possible_msg.msg.Equals(_new_msg.msg))
                             {
                                 return false;
                             }

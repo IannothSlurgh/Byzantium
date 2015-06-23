@@ -135,6 +135,15 @@ class CommunicationNode
         }
     }
 
+    //Make sure to pass this callback the connect_socket.
+    private static void tcp_send_callback(IAsyncResult result)
+    {
+        Socket connect_socket = (Socket)result.AsyncState;
+        int bytes_sent = connect_socket.EndSend(result);
+        connect_socket.Shutdown(SocketShutdown.Both);
+        connect_socket.Disconnect(true);
+    }
+
     public void shutdown()
     {
         if (udp_data != null)
@@ -148,10 +157,12 @@ class CommunicationNode
         {
             if (tcp_data.listening_socket != null)
             {
+                tcp_data.listening_socket.Shutdown(SocketShutdown.Both);
                 tcp_data.listening_socket.Close();
             }
             if (tcp_data.work_socket != null)
             {
+                tcp_data.work_socket.Shutdown(SocketShutdown.Both);
                 tcp_data.work_socket.Close();
             }
         }
@@ -379,8 +390,7 @@ class CommunicationNode
     {
         if (connect_socket.Connected)
         {
-            connect_socket.Send(data);
-            connect_socket.Disconnect(true);
+            connect_socket.BeginSend(data, 0, data.Length, 0, new AsyncCallback(tcp_send_callback), connect_socket);
         }
         else
         {
