@@ -142,7 +142,8 @@ class CommunicationNode
         Socket connect_socket = (Socket)result.AsyncState;
         int bytes_sent = connect_socket.EndSend(result);
         connect_socket.Shutdown(SocketShutdown.Both);
-        connect_socket.Disconnect(true);
+        connect_socket.Disconnect(false);
+        connect_socket.Close();
     }
 
     public void shutdown()
@@ -388,8 +389,16 @@ class CommunicationNode
             str_err = e.ToString();
 			return false;
 		}
-		connect_socket.Connect(remote_ip, tcp_port);
-		return true;
+        if (!connect_socket.Connected)
+        {
+            AddressFamily addr_fam = AddressFamily.InterNetwork;
+            SocketType sock_type = SocketType.Stream;
+            ProtocolType proto_type = ProtocolType.Tcp;
+            connect_socket = new Socket(addr_fam, sock_type, proto_type);
+            connect_socket.Connect(remote_ip, tcp_port);
+            return true;
+        }
+        return false;
 	}
 	
 	//Send a broadcast on the UdpClient to all clients on same subnet.
