@@ -13,7 +13,7 @@ namespace Byzantium
     {
         private List<IPAddress> addresses;
         private int capacity;
-        private int length;
+        private int len;
 
         public SortedAddressList(int _capacity)
         {
@@ -23,7 +23,7 @@ namespace Byzantium
             }
             addresses = new List<IPAddress>(_capacity);
             capacity = _capacity;
-            length = 0;
+            len = 0;
         }
 
         private static bool greater(IPAddress one, IPAddress two)
@@ -65,14 +65,14 @@ namespace Byzantium
         private bool find(IPAddress ip)
         {
             //Empty means not inside.
-            if (length == 0)
+            if (len == 0)
             {
                 return false;
             }
-            int max_times = log_2(length);
-            int mid = length / 2;
+            int max_times = log_2(len);
+            int mid = len / 2;
             int bottom = 0;
-            int top = length;
+            int top = len;
             for (int i = 0; i <= max_times; ++i)
             {
                 int temp = mid;
@@ -108,14 +108,14 @@ namespace Byzantium
         public bool add(IPAddress a)
         {
             //Fixed size, never exceed capacity.
-            if (length + 1 > capacity)
+            if (len + 1 > capacity)
             {
                 return false;
             }
             //Empty requires no sorting.
-            if (length == 0)
+            if (len == 0)
             {
-                length += 1;
+                len += 1;
                 addresses.Add(a);
                 return true;
             }
@@ -124,7 +124,7 @@ namespace Byzantium
             {
                 return false;
             }
-            length += 1;
+            len += 1;
             addresses.Add(a);
             addresses.Sort(new ipcomparer());
             return true;
@@ -148,5 +148,11 @@ namespace Byzantium
             addresses.RemoveAt(loc);
             return true;
         }
+
+        public int length()
+        {
+            return len;
+        }
+
     }
 }

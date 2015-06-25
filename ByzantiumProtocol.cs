@@ -11,12 +11,14 @@ namespace Byzantium
 {
     public class ByzantiumProtocol
     {
-        List<IPAddress> friendly;
-        List<IPAddress> pending;
+        SortedAddressList friendly;
+        SortedAddressList pending;
         CommunicationNode my_node = null;
         Thread control_thread;
         public ByzantiumProtocol()
         {
+            friendly = new SortedAddressList(100);
+            pending = new SortedAddressList(100);
             control_thread = new Thread(control);
         }
 
@@ -238,6 +240,28 @@ namespace Byzantium
                 return my_node;
             }
             return null;
+        }
+
+        //Look for a byzantium network to join unless danger is involved.
+        void JoinNetwork()
+        {
+            if (friendly.length() == 0)
+            {
+
+            }
+        }
+
+        void control1()
+        {
+            String wanderer_without_home = "Ye who hold dominion here- I am an application without a home.";
+            Console.Out.WriteLine("Broadcasting open LAN in search of fellow Byzantine Generals.");
+            my_node.broadcast(Encoding.ASCII.GetBytes(wanderer_without_home));
+            my_node.listen_tcp();
+            Console.Out.WriteLine("Waiting for TCP response...");
+            Thread.Sleep(1000);
+
+            String join_us = "We can work together.";
+
         }
 
         void control()
