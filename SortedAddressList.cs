@@ -105,6 +105,20 @@ namespace Byzantium
             return false;
         }
 
+        public bool add(byte[] ip_bytes)
+        {
+            IPAddress ip;
+            try
+            {
+                ip = new IPAddress(ip_bytes);
+            }
+            catch(ArgumentException e)
+            {
+                return false;
+            }
+            return add(ip);
+        }
+
         public bool add(IPAddress a)
         {
             //Fixed size, never exceed capacity.

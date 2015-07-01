@@ -19,7 +19,7 @@ namespace Byzantium
         {
             friendly = new SortedAddressList(100);
             pending = new SortedAddressList(100);
-            control_thread = new Thread(control);
+            control_thread = new Thread(control1);
         }
 
         ~ByzantiumProtocol()
@@ -245,6 +245,7 @@ namespace Byzantium
         //Look for a byzantium network to join unless danger is involved.
         void JoinNetwork()
         {
+            //Not in a network
             if (friendly.length() == 0)
             {
 
@@ -253,14 +254,51 @@ namespace Byzantium
 
         void control1()
         {
-            String wanderer_without_home = "Ye who hold dominion here- I am an application without a home.";
-            Console.Out.WriteLine("Broadcasting open LAN in search of fellow Byzantine Generals.");
-            my_node.broadcast(Encoding.ASCII.GetBytes(wanderer_without_home));
-            my_node.listen_tcp();
-            Console.Out.WriteLine("Waiting for TCP response...");
-            Thread.Sleep(1000);
+            //Spend a time gathering data on alleged available clients
+            for(int i = 0; i<10; ++i)
+            {
+                Console.Out.WriteLine(ByzantiumStrings.searching);
+                my_node.broadcast(Encoding.ASCII.GetBytes(ByzantiumStrings.wanderer_without_home));
+                my_node.listen_tcp();
+                Console.Out.WriteLine(ByzantiumStrings.waiting_response);
+                Thread.Sleep(1000);
+                Message m = my_node.nextMessageTCP();
+                if (m.is_bad)
+                {
+                    Console.Out.WriteLine("No Response.");
+                }
+                else
+                {
+                    Console.Out.WriteLine(m.msg);
+                    if (m.msg.Contains(ByzantiumStrings.join_us))
+                    {
+                        pending.add(m.addr);
+                    }
+                }
+            }
 
-            String join_us = "We can work together.";
+            JoinNetwork();
+
+            while (true)
+            {
+                Console.Out.WriteLine(ByzantiumStrings.awaiting_new_clients);
+                my_node.listen_broadcast();
+                Thread.Sleep(1000);
+                Message m = my_node.nextMessageBroadcast();
+                if (m.is_bad)
+                {
+                    Console.Out.WriteLine("...");
+                }
+                else
+                {
+                    Console.Out.WriteLine(m.msg);
+                    if (m.msg.Contains(ByzantiumStrings.wanderer_without_home))
+                    {
+                        pending.add(m.addr);
+                        my_node.send(Encoding.Default.GetBytes(ByzantiumStrings.join_us), m.addr);
+                    }
+                }
+            }
 
         }
 
@@ -293,7 +331,6 @@ namespace Byzantium
                 most_recent = my_node.nextMessageTCP();
                 if (!most_recent.is_bad)
                 {
-                    Console.Out.WriteLine(most_recent.proto);
                     //Console.Out.WriteLine(most_recent.msg);
                     Console.Out.WriteLine("TCP message received from " + Encoding.Default.GetString(most_recent.addr) + ".");
                 }
@@ -303,7 +340,7 @@ namespace Byzantium
         public void terminate()
         {
             if (control_thread.IsAlive)
-            {
+            {         
                 control_thread.Abort();
             }
         }
