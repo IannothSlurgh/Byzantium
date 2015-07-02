@@ -14,5 +14,9 @@ namespace Byzantium
         public const String join_us = "We can work together.";
         public const String waiting_response = "Waiting for TCP response...";
         public const String awaiting_new_clients = "Waiting for clients seeking a network...";
+        public const String who_are_your_friends = "With whom do you associate?";
+        public const String these_are_my_friends = "These are my friends:";
+        public const String do_you_know = "Do you know?:";
+        public const String i_know = "I know?:";
     }
 }

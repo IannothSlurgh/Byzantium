@@ -327,6 +327,42 @@ class CommunicationNode
         return tcp_messages.Dequeue();
     }
 
+    public Message searchBroadcast(String contents)
+    {
+        int size = broadcast_messages.Length();
+        for (int i = 0; i < size; ++i)
+        {
+            Message current = broadcast_messages.Dequeue();
+            if (current.msg.Contains(contents))
+            {
+                return current;
+            }
+            else
+            {
+                broadcast_messages.Enqueue(current);
+            }
+        }
+        return broadcast_messages.CreateBadMessage();
+    }
+
+    public Message searchTCP(String contents)
+    {
+        int size = tcp_messages.Length();
+        for (int i = 0; i < size; ++i)
+        {
+            Message current = tcp_messages.Dequeue();
+            if (current.msg.Contains(contents))
+            {
+                return current;
+            }
+            else
+            {
+                tcp_messages.Enqueue(current);
+            }
+        }
+        return tcp_messages.CreateBadMessage();
+    }
+
     /*public Message nextMessage()
     {
         return message_queue.Dequeue();

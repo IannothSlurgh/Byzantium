@@ -104,17 +104,22 @@ namespace Byzantium
         {
             if (length == 0)
             {
-                Message bad_msg;
-                bad_msg.addr = null;
-                bad_msg.proto = null;
-                bad_msg.msg = null;
-                bad_msg.is_bad = true;
-                return bad_msg;
+                return CreateBadMessage();
             }
             length -= 1;
             Message next_msg = messages.First();
             messages.RemoveFirst();
             return next_msg;
+        }
+
+        public Message CreateBadMessage()
+        {
+            Message bad_msg;
+            bad_msg.addr = null;
+            bad_msg.proto = null;
+            bad_msg.msg = null;
+            bad_msg.is_bad = true;
+            return bad_msg;
         }
 
         public int Length()
@@ -126,5 +131,19 @@ namespace Byzantium
         {
             return capacity;
         }
+
+        //Look for the presence of a particular message.
+        public bool search(String contents)
+        {
+            foreach (Message m in messages)
+            {
+                if (m.msg.Contains(contents))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
     }
 }

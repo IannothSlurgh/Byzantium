@@ -3,17 +3,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Net;
+using System.Collections;
 
 namespace Byzantium
 {
     //A fixed capacity array of IpAddresses
     //in the same subnet which are sorted
     //from least to greatest.
-    public class SortedAddressList
+    public class SortedAddressList : IEnumerable
     {
         private List<IPAddress> addresses;
         private int capacity;
         private int len;
+
 
         public SortedAddressList(int _capacity)
         {
@@ -119,6 +121,20 @@ namespace Byzantium
             return add(ip);
         }
 
+        public bool add(String addr)
+        {
+            IPAddress ip;
+            try
+            {
+                ip = IPAddress.Parse(addr);
+            }
+            catch(FormatException e)
+            {
+                return false;
+            }
+            return add(ip);
+        }
+
         public bool add(IPAddress a)
         {
             //Fixed size, never exceed capacity.
@@ -166,6 +182,58 @@ namespace Byzantium
         public int length()
         {
             return len;
+        }
+
+        public string ToString()
+        {
+            string concat = "";
+            foreach (IPAddress ip in addresses)
+            {
+                concat += ip.ToString();
+                concat += " ";
+            }
+            return concat;
+        }
+
+        private class SortedAddressListEnumerator : IEnumerator
+        {
+            List<IPAddress> my_list;
+            int iterator_index = 0;
+            int len = 0;
+
+            public SortedAddressListEnumerator(ref List<IPAddress> _my_list, int _len) 
+            {
+                my_list = _my_list;
+                len = _len;
+            }
+
+            public bool MoveNext()
+            {
+                iterator_index++;
+                return (iterator_index < len);
+            }
+
+            public void Reset()
+            { iterator_index = 0; }
+
+            public object Current
+            {
+                get
+                {
+                    try
+                    {
+                        return my_list[iterator_index];
+                    }
+                    catch (IndexOutOfRangeException)
+                    {
+                        throw new InvalidOperationException();
+                    }
+                }
+            }
+        }
+        public IEnumerator GetEnumerator()
+        {
+            return (IEnumerator)new SortedAddressListEnumerator(ref addresses, len);
         }
 
     }

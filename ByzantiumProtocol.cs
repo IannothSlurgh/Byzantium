@@ -242,13 +242,96 @@ namespace Byzantium
             return null;
         }
 
+        //Get all IPAddresses in a string starting from a colon, each delimited by a space.
+        SortedAddressList GetQueryList(String s)
+        {
+            SortedAddressList data = new SortedAddressList(20);
+            //Find index of colon. All data after should be IPAddresses.
+            int colon_index = 0;
+            for (int i = 0; i < s.Length; ++i)
+            {
+                if (s.ElementAt(i).Equals(':'))
+                {
+                    colon_index = i;
+                    break;
+                }
+            }
+            //Look for the index of the first address
+            int address_index = 0;
+            for (int i = colon_index+1; i < s.Length; ++i)
+            {
+                if (!s.ElementAt(i).Equals(" "))
+                {
+                    address_index = i;
+                    break;
+                }
+            }
+            //Go address by address adding to sorted list
+            bool incomplete = true;
+            while (incomplete)
+            {
+                //Find the space after the address.
+                int delimiter_index = 0;
+                for (int i = address_index; i < s.Length; ++i)
+                {
+                    if (s.ElementAt(i).Equals(" "))
+                    {
+                        delimiter_index = i;
+                        break;
+                    }
+                }
+                int num_char = delimiter_index - address_index -1;
+                string addr = s.Substring(address_index, num_char);
+                data.add(addr);
+                //Find the next address
+                for (int i = delimiter_index; i < s.Length; ++i)
+                {
+                    if (!s.ElementAt(i).Equals(" "))
+                    {
+                        address_index = i;
+                        break;
+                    }
+                    //If we don't find another address, we are done.
+                    if (i == s.Length - 1)
+                    {
+                        incomplete = false;
+                    }
+                }
+            }
+            return data;
+        }
+
+        Message TCPStep(String send, String receive, IPAddress target)
+        {
+            my_node.send(Encoding.Default.GetBytes(send), target.GetAddressBytes());
+            Thread.Sleep(3000);
+            return my_node.searchTCP(receive);
+        }
+
         //Look for a byzantium network to join unless danger is involved.
         void JoinNetwork()
         {
-            //Not in a network
-            if (friendly.length() == 0)
+            if (pending.length() > 0)
             {
-
+                //Go through each pending address, ask for a list of references.
+                for (int i = 0; i < pending.length(); ++i )
+                {
+                    IPAddress current = pending[i];
+                    Message response = TCPStep(ByzantiumStrings.who_are_your_friends, ByzantiumStrings.these_are_my_friends, current);
+                    //If an address responds with a list of references, go ask each reference if it knows the pending address.
+                    if (!response.is_bad)
+                    {
+                        SortedAddressList query_list = GetQueryList(response.msg);
+                        foreach (IPAddress ip in query_list)
+                        {
+                            StringBuilder question = new StringBuilder();
+                            question.Append(ByzantiumStrings.who_are_your_friends);
+                            question.Append(" " + current);
+                            TCPStep(question.ToString(), ByzantiumStrings.i_know , current);
+                        }
+                    }
+                    pending.remove(current);
+                }
             }
         }
 
