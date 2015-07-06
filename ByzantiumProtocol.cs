@@ -412,6 +412,7 @@ namespace Byzantium
                         }
                         byte[] response_bytes = Encoding.Default.GetBytes(response.ToString());
                         my_node.send(response_bytes, m.addr);
+                        Console.Out.WriteLine("References sent to "+Encoding.Default.GetString(m.addr));
                     }
                     if (m.msg.Contains(ByzantiumStrings.do_you_know))
                     {
@@ -427,6 +428,7 @@ namespace Byzantium
                         }
                         byte[] response_bytes = Encoding.Default.GetBytes(response.ToString());
                         my_node.send(response_bytes, m.addr);
+                        Console.Out.WriteLine("References confirmed for " + Encoding.Default.GetString(m.addr));
                     }
                 }
             }
