@@ -51,7 +51,7 @@ namespace Byzantium
         }
 
         //Return an index max for the for loop of binary search.
-        private int log_2(int num)
+        /*private int log_2(int num)
         {
             int times = 0;
             while (num > 2)
@@ -60,11 +60,11 @@ namespace Byzantium
                 times++;
             }
             return times;
-        }
+        }*/
 
         //Use binary search to look for ipaddress in list.
         //Could have used BinarySearch<t>, was oversight.
-        private bool find(IPAddress ip)
+        /*private bool find(IPAddress ip)
         {
             //Empty means not inside.
             if (len == 0)
@@ -105,6 +105,16 @@ namespace Byzantium
                 }
             }
             return false;
+        }*/
+
+        public bool find(IPAddress searched_for)
+        {
+            int loc = addresses.BinarySearch(searched_for, new ipcomparer());
+            if (loc < 0)
+            {
+                return false;
+            }
+            return true;
         }
 
         public bool add(byte[] ip_bytes)

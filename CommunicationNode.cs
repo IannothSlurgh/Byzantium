@@ -458,7 +458,13 @@ class CommunicationNode
         {
             return false;
         }
-        return true;
+
+        bool connected = connect(Encoding.Default.GetString(addr));
+        if (!connected)
+        {
+            return false;
+        }
+        return send(data);
     }
 
     public bool send(byte[] data)
@@ -470,6 +476,7 @@ class CommunicationNode
         else
         {
             Console.Out.WriteLine("No Connection");
+            return false;
         }
         return true;
     }

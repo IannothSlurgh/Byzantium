@@ -301,6 +301,7 @@ namespace Byzantium
             return data;
         }
 
+        //
         Message TCPStep(String send, String receive, IPAddress target)
         {
             my_node.send(Encoding.Default.GetBytes(send), target.GetAddressBytes());
@@ -317,17 +318,27 @@ namespace Byzantium
                 for (int i = 0; i < pending.length(); ++i )
                 {
                     IPAddress current = pending[i];
-                    Message response = TCPStep(ByzantiumStrings.who_are_your_friends, ByzantiumStrings.these_are_my_friends, current);
+                    Message ask_for_refs = TCPStep(ByzantiumStrings.who_are_your_friends, ByzantiumStrings.these_are_my_friends, current);
                     //If an address responds with a list of references, go ask each reference if it knows the pending address.
-                    if (!response.is_bad)
+                    if (!ask_for_refs.is_bad)
                     {
-                        SortedAddressList query_list = GetQueryList(response.msg);
+                        SortedAddressList query_list = GetQueryList(ask_for_refs.msg);
+                        StringBuilder question = new StringBuilder();
+                        question.Append(ByzantiumStrings.do_you_know);
+                        question.Append(" " + current);
+                        bool refs_good = true;
                         foreach (IPAddress ip in query_list)
                         {
-                            StringBuilder question = new StringBuilder();
-                            question.Append(ByzantiumStrings.who_are_your_friends);
-                            question.Append(" " + current);
-                            TCPStep(question.ToString(), ByzantiumStrings.i_know , current);
+                            Message ask_acquaintance = TCPStep(question.ToString(), ByzantiumStrings.i_know, ip);
+                            if (ask_acquaintance.is_bad)
+                            {
+                                Console.WriteLine(ip.ToString()+" doesn't know "+current.ToString());
+                                refs_good = false;
+                            }
+                        }
+                        if (refs_good)
+                        {
+                            friendly.add(current);
                         }
                     }
                     pending.remove(current);
@@ -366,11 +377,12 @@ namespace Byzantium
             {
                 Console.Out.WriteLine(ByzantiumStrings.awaiting_new_clients);
                 my_node.listen_broadcast();
+                my_node.listen_tcp();
                 Thread.Sleep(1000);
                 Message m = my_node.nextMessageBroadcast();
                 if (m.is_bad)
                 {
-                    Console.Out.WriteLine("...");
+                    Console.Out.WriteLine("No broadcasts...");
                 }
                 else
                 {
@@ -379,6 +391,42 @@ namespace Byzantium
                     {
                         pending.add(m.addr);
                         my_node.send(Encoding.Default.GetBytes(ByzantiumStrings.join_us), m.addr);
+                        Console.Out.WriteLine("Inviting "+Encoding.Default.GetString(m.addr)+"...");
+                    }
+                }
+                m = my_node.nextMessageTCP();
+                if (m.is_bad)
+                {
+                    Console.Out.WriteLine("No TCP messages...");
+                }
+                else
+                {
+                    if (m.msg.Contains(ByzantiumStrings.who_are_your_friends))
+                    {
+                        StringBuilder response = new StringBuilder();
+                        response.Append(ByzantiumStrings.these_are_my_friends + " ");
+                        foreach (IPAddress ip in friendly)
+                        {
+                            response.Append(ip);
+                            response.Append(" ");
+                        }
+                        byte[] response_bytes = Encoding.Default.GetBytes(response.ToString());
+                        my_node.send(response_bytes, m.addr);
+                    }
+                    if (m.msg.Contains(ByzantiumStrings.do_you_know))
+                    {
+                        SortedAddressList acquaintances = GetQueryList(m.msg);
+                        StringBuilder response = new StringBuilder();
+                        response.Append(ByzantiumStrings.i_know+" ");
+                        foreach (IPAddress ip in acquaintances)
+                        {
+                            if (friendly.find(ip))
+                            {
+                                response.Append(ip + " ");
+                            }
+                        }
+                        byte[] response_bytes = Encoding.Default.GetBytes(response.ToString());
+                        my_node.send(response_bytes, m.addr);
                     }
                 }
             }
